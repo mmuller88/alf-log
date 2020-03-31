@@ -11,6 +11,7 @@ chmod +x /usr/local/bin/docker-compose
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 source /.nvm/nvm.sh
 nvm install node
+ln -s /usr/bin/nodejs /usr/bin/node
 node -e "console.log('Running Node.js ' + process.version)"
 npm install
 
