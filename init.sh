@@ -14,4 +14,6 @@ nvm install node
 ln -s /usr/bin/nodejs /usr/bin/node
 node -e "console.log('Running Node.js ' + process.version)"
 npm install
+# remove volume which create a permission denied issue
+sed -i '\|logs/postgres|d' ./docker-compose.yml
 
