@@ -2,6 +2,71 @@
 version: "2"
 
 services:
+    fluentd:
+        image: fluent/fluentd:v1.10
+        # volumes:
+        #     - ./fluentd/conf:/fluentd/etc
+        ports:
+          - "24224:24224"
+          - "24224:24224/udp"
+        depends_on:
+          - elasticsearch
+
+    elasticsearch:
+        image: elasticsearch:7.6.0
+        environment:
+            - "discovery.type=single-node"
+        expose:
+          - 9200
+        ports:
+          - "9200:9200"
+
+    kibana:
+        image: kibana:7.2.0
+        ports:
+            - "5601:5601"
+
+    web:
+        image: nginx:stable-alpine
+        # external_links:
+        #     - fluentd
+        extra_hosts: # <-- this is how the db can be located.
+            - "fluentd:192.168.0.129"
+        ports:
+            - 80:80
+        depends_on:
+            - fluentd
+        logging:
+            driver: "fluentd"
+            options:
+              fluentd-address: localhost:24224
+              tag: web.nginx.logs
+
+
+    # HTTP proxy to provide HTTP Default port access to services
+    # SOLR API and SOLR Web Console are protected to avoid unauthenticated access
+    proxy:
+        image: nginx:stable-alpine
+        mem_limit: 128m
+        depends_on:
+            - alfresco
+            - solr6
+            - share
+            - content-app
+            - fluentd
+        volumes:
+            - ./config/nginx.conf:/etc/nginx/nginx.conf
+            # - ./config/nginx.htpasswd:/etc/nginx/conf.d/nginx.htpasswd
+            # - ./config/cert/localhost.cer:/etc/nginx/localhost.cer
+            # - ./config/cert/localhost.key:/etc/nginx/localhost.key
+        logging:
+            driver: "fluentd"
+            options:
+                fluentd-address: fluentd:24224
+                tag: web.nginx.logs
+        ports:
+            - 80:80
+
     alfresco:
         build:
           context: ./alfresco
@@ -178,23 +243,7 @@ services:
             - alfresco
             - share
 
-    # HTTP proxy to provide HTTP Default port access to services
-    # SOLR API and SOLR Web Console are protected to avoid unauthenticated access
-    proxy:
-        image: nginx:stable-alpine
-        mem_limit: 128m
-        depends_on:
-            - alfresco
-            - solr6
-            - share
-            - content-app
-        volumes:
-            - ./config/nginx.conf:/etc/nginx/nginx.conf
-            # - ./config/nginx.htpasswd:/etc/nginx/conf.d/nginx.htpasswd
-            # - ./config/cert/localhost.cer:/etc/nginx/localhost.cer
-            # - ./config/cert/localhost.key:/etc/nginx/localhost.key
-        ports:
-            - 80:80
+
 
 
 
